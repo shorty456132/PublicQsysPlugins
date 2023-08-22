@@ -10,7 +10,7 @@ table.insert(props ,{
   Name = "SelectionAmount", 
   Type = "integer", 
   Min = 1, 
-  Max = 100, 
+  Max = 256, 
   Value = 4
 })
 table.insert(props, {
