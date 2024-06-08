@@ -8,9 +8,9 @@ table.insert(props, {
 
 table.insert(props ,{
   Name = "SelectionAmount", 
-  Type = "integer", 
-  Min = 1, 
-  Max = 256, 
+  Type = "integer",
+  Min = 1,
+  Max = 256,
   Value = 4
 })
 table.insert(props, {
