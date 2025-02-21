@@ -1,0 +1,521 @@
+-- Basic Framework Plugin
+-- by QSC
+-- October 2020
+
+-- Information block for the plugin
+PluginInfo = {
+  Name = "Shutdown Progress Bar",
+  Version = "1.0",
+  BuildVersion = "1.0.0.0",
+  Id = "8208165b-2f54-46e4-bbee-f95e9b1e97e0",
+  Author = "AML",
+  Description = "Creates a simple svg status bar. progress goes from right to left. used as a timer to shut the system down once time has elapsed."  
+}
+
+-- Define the color of the plugin object in the design
+function GetColor(props)
+  return { 102, 102, 102 }
+end
+
+-- The name that will initially display when dragged into a design
+function GetPrettyName(props)
+  return "Shutdown Progress Bar, version " .. PluginInfo.Version
+end
+
+-- Optional function used if plugin has multiple pages
+PageNames = { "Control" }  --List the pages within the plugin
+function GetPages(props)
+  local pages = {}
+  for ix,name in ipairs(PageNames) do
+    table.insert(pages, {name = PageNames[ix]})
+  end
+  return pages
+end
+
+-- Optional function to define model if plugin supports more than one model
+function GetModel(props)
+  local model = {}
+  if props.Model ~= nil and props.Model.Value ~= "" then
+    table.insert(model, { props.Model.Value } )
+  else
+    table.insert(model, { "Base Model" } )
+  end
+ return model
+end
+
+-- Define User configurable Properties of the plugin
+function GetProperties()
+  local props = {}
+  table.insert(props, {
+    Name = "Debug Print",
+    Type = "enum",
+    Choices = {"None", "Tx/Rx", "Tx", "Rx", "Function Calls", "All"},
+    Value = "None"
+  })
+  return props
+end
+
+-- Optional function to define pins on the plugin that are not connected to a Control
+function GetPins(props)
+  local pins = {}
+  -- -- table.insert(pins,{
+  -- --   Name = "Audio Output",
+  -- --   Direction = "output",
+  -- -- })
+  
+  -- table.insert(pins, {
+  --   Name = "Mic Input",
+  --   Direction = "input"
+  -- })
+  
+  -- table.insert(pins, {
+  --   Name = "Speaker Output",
+  --   Direction = "output"
+  -- })
+  return pins
+end
+
+-- Optional function to update available properties when properties are altered by the user
+function RectifyProperties(props)
+  if props.plugin_show_debug.Value == false then 
+    props["Debug Print"].IsHidden = true 
+  end
+  return props
+end
+
+-- Optional function to define components used within the plugin
+function GetComponents(props)
+  local components = {}
+  -- table.insert(components,{
+  --   Name = "main_mixer",
+  --   Type = "mixer",
+  --   Properties =   
+  --   {
+  --     ["n_inputs"] = 8,
+  --     ["n_outputs"] = 1,
+  --   }
+  -- })
+  return components
+end
+
+-- Optional function to define wiring of components used within the plugin
+function GetWiring(props)
+  local wiring = {}
+  -- table.insert( wiring, { "Audio Output", "main_mixer Output 1" } )
+  return wiring
+end
+
+-- Defines the Controls used within the plugin
+function GetControls(props)
+  local ctrls = {}
+  -- Add controls here
+  
+  -- Control and set the timer
+  -- Start
+  table.insert(ctrls, {
+    Name = "Start",
+    Count = 1,
+    ControlType = "Button",
+    ButtonType = "Trigger",
+    UserPin = true,
+    PinStyle = "Input",
+  })
+  
+  -- Reset
+  table.insert(ctrls, {
+    Name = "Reset",
+    Count = 1,
+    ControlType = "Button",
+    ButtonType = "Trigger",
+    UserPin = true,
+    PinStyle = "Input",
+  })
+  
+  -- time duration in seconds
+  table.insert(ctrls, {
+    Name = "Duration",
+    Count = 1,
+    ControlType = "Knob",
+    ControlUnit = "Integer",
+    Max = 3600,
+    Min = 1,
+    DefaultValue = 60,
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  -- lets the system know the time has expired
+  table.insert(ctrls, {
+    Name = "TimeExpired",
+    Count = 1,
+    ControlType = "Button",
+    ButtonType = "Trigger",
+    UserPin = false,
+    PinStyle = "Output",
+  })
+  
+  
+  
+  -- Main object that should be used in UCIs
+  table.insert(ctrls, {
+    Name = "ProgressDisplay",
+    Count = 1,
+    ControlType = "Button",
+    ButtonType = "Toggle",
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  
+  -- Setup for the progress bar view
+  table.insert(ctrls, {
+    Name = "BackgroundColor",
+    Count = 1,
+    ControlType = "Text",
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  table.insert(ctrls, {
+    Name = "ForegroundColor",
+    Count = 1,
+    ControlType = "Text",
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  table.insert(ctrls, {
+    Name = "BorderWidth",
+    Count = 1,
+    ControlType = "Knob",
+    ControlUnit = "Integer",
+    Max = 10,
+    Min = 0,
+    DefaultValue = 0,
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  table.insert(ctrls, {
+    Name = "BorderRadius",
+    Count = 1,
+    ControlType = "Knob",
+    ControlUnit = "Integer",
+    Max = 300,
+    Min = 0,
+    DefaultValue = 8,
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  table.insert(ctrls, {
+    Name = "HorizontalSize",
+    Count = 1,
+    ControlType = "Knob",
+    ControlUnit = "Integer",
+    Max = 1920,
+    Min = 1,
+    DefaultValue = 700,
+    UserPin = false,
+    PinStyle = "None",
+  })
+  
+  table.insert(ctrls, {
+    Name = "VerticalSize",
+    Count = 1,
+    ControlType = "Knob",
+    ControlUnit = "Integer",
+    Max = 1280,
+    Min = 1,
+    DefaultValue = 50,
+    UserPin = false,
+    PinStyle = "None",
+  })
+  return ctrls
+end
+
+--Layout of controls and graphics for the plugin UI to display
+function GetControlLayout(props)
+  local layout = {}
+  local graphics = {}
+  
+  local CurrentPage = PageNames[props["page_index"].Value] -- Get the current pages from the PageNames table in the plugin.lua
+  
+  if CurrentPage == "Control" then -- must match what is in the PageNames table
+    
+    layout["TimeExpired"] = {
+      PrettyName = "TimeExpired",
+      Style = "None",
+      Position = {0, 0},
+      Size = {0, 0},
+    }
+  
+  
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Start",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 20},
+    })
+  
+    layout["Start"] = {
+      PrettyName = "Start",
+      Style = "Button",
+      ButtonStyle = "Trigger",
+      Position = {110, 20},
+      Size = {60,30},
+    }
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Reset",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 60},
+    })
+  
+    layout["Reset"] = {
+      PrettyName = "Reset",
+      Style = "Button",
+      ButtonStyle = "Trigger",
+      Position = {110, 60},
+      Size = {60, 30},
+    }
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Duration",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 100},
+    })
+  
+    layout["Duration"] = {
+      PrettyName = "Duration",
+      Style = "Text",
+      Position = {110, 100},
+      Size = {60, 30},
+    }
+  
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Progress Bar",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 140},
+    })
+  
+    layout["ProgressDisplay"] = {
+      PrettyName = "ProgressDisplay",
+      Style = "Button",
+      ButtonStyle = "Toggle",
+      Position = {110, 140},
+      Size = {150, 30},
+    }
+  
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Background Color",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 200},
+    })
+  
+    layout["BackgroundColor"] = {
+      PrettyName = "BackgroundColor",
+      Style = "Text",
+      Position = {110, 200},
+      Size = {80, 30},
+    }
+  
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Foreground Color",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 240},
+    })
+  
+    layout["ForegroundColor"] = {
+      PrettyName = "ForegroundColor",
+      Style = "Text",
+      Position = {110, 240},
+      Size = {80, 30},
+    }
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Border Width",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 280},
+    })
+  
+    layout["BorderWidth"] = {
+      PrettyName = "BorderWidth",
+      Style = "Text",
+      Position = {110, 280},
+      Size = {80, 30},
+    }
+  
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Border Radius",
+      HTextAlign = "Right",
+      Size     = {100, 30},
+      Position = {10, 320},
+    })
+  
+    layout["BorderRadius"] = {
+      PrettyName = "BorderRadius",
+      Style = "Text",
+      Position = {110, 320},
+      Size = {80, 30},
+    }
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Horizontal Size",
+      Size     = {100, 30},
+      Position = {10, 360},
+    })
+  
+    layout["HorizontalSize"] = {
+      PrettyName = "HorizontalSize",
+      Style = "Text",
+      Position = {110, 360},
+      Size = {80, 30},
+    }
+  
+    table.insert(graphics, {
+      Type     = "Label",
+      Text     = "Vertical Size",
+      Size     = {100, 30},
+      Position = {10, 400},
+    })
+  
+    layout["VerticalSize"] = {
+      PrettyName = "VerticalSize",
+      Style = "Text",
+      Position = {110, 400},
+      Size = {80, 30},
+    }
+  end
+  return layout, graphics
+end
+
+--Start event based logic
+if Controls then
+  -- Required libraries
+  rapidjson = require("rapidjson")
+  EzSVG = require("EzSVG")
+  
+  -- Controls that need to be created in Q-SYS Designer:
+  -- 1. ProgressDisplay (Toggle Button) - for displaying the SVG
+  -- 2. Duration  - for setting countdown duration in seconds
+  -- 3. Start (Button) - to start the countdown
+  -- 4. Reset (Button) - to reset to 100%
+  
+  
+  -- Initialize variables
+  local timer           = Timer.New()
+  local startTime       = 0
+  local duration        = 0
+  local isRunning       = false
+  local currentProgress = 100
+  local horizontalSize  = Controls.HorizontalSize.Value
+  local VerticalSize    = Controls.VerticalSize.Value
+  
+  
+  function drawProgressBar(percentage)
+    -- Create SVG document (400x50 pixels)
+    local doc = EzSVG.Document(horizontalSize, VerticalSize)
+    
+    -- Background rectangle (gray)
+    doc:add(EzSVG.Rect(0, 0, horizontalSize, VerticalSize)
+      :setStyle({
+        fill = Controls.BackgroundColor.String,
+        stroke = "#808080",
+        stroke_width = Controls.BorderWidth.Value,
+        rx = Controls.BorderRadius.Value,
+        ry = Controls.BorderRadius.Value
+      }))
+    
+    -- Progress rectangle (blue)
+    local width = (percentage / 100) * horizontalSize
+    doc:add(EzSVG.Rect(0, 0, width, VerticalSize)
+      :setStyle({
+        fill = Controls.ForegroundColor.String,
+        fill_opacity = "1", -- "0.6",
+        stroke = "none",
+        rx = Controls.BorderRadius.Value,
+        ry = Controls.BorderRadius.Value
+      }))
+    
+    return doc:toString()
+  end
+  
+  -- Update the progress display
+  function updateDisplay()
+    Controls.ProgressDisplay.Legend = rapidjson.encode({
+      DrawChrome = false,
+      IconData = Crypto.Base64Encode(drawProgressBar(currentProgress))
+    })
+    -- Controls.CurrentProgress.String = string.format("%.1f%%", currentProgress)
+  end
+  
+  -- Timer event handler
+  timer.EventHandler = function()
+    if not isRunning then return end
+    
+    local elapsed = Timer.Now() - startTime
+    currentProgress = 100 * (1 - (elapsed / duration))
+    
+    if currentProgress <= 0 then
+      currentProgress = 100
+      isRunning = false
+      timer:Stop()
+      Controls.TimeExpired:Trigger()
+    end
+    
+    updateDisplay()
+  end
+  
+  -- Start button handler
+  Controls.Start.EventHandler = function()
+    if Controls.Duration.Value <= 0 then return end
+    
+    duration = Controls.Duration.Value
+    startTime = Timer.Now()
+    isRunning = true
+    timer:Start(0.1) -- Update every 100ms
+  end
+  
+  -- Reset button handler
+  Controls.Reset.EventHandler = function()
+    isRunning = false
+    timer:Stop()
+    currentProgress = 100
+    updateDisplay()
+  end
+  
+  
+  
+  
+  -- Initialize the display
+  function Initialize()
+    -- Controls.Duration.Value = Controls.Duration.Value ~= nil and Controls.Duration.Value or 60 -- Default 10 seconds
+    if Controls.BackgroundColor.String == nil or Controls.BackgroundColor.String == "" then Controls.BackgroundColor.String = "transparent" end
+    if Controls.ForegroundColor.String == nil or Controls.ForegroundColor.String == "" then Controls.ForegroundColor.String = "#214edc" end
+  
+    updateDisplay()
+  end
+  
+  Initialize()
+end
