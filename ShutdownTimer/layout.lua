@@ -3,12 +3,21 @@ local CurrentPage = PageNames[props["page_index"].Value] -- Get the current page
 
 if CurrentPage == "Control" then -- must match what is in the PageNames table
   
+  -- hidden controls
   layout["TimeExpired"] = {
     PrettyName = "TimeExpired",
     Style = "None",
     Position = {0, 0},
     Size = {0, 0},
   }
+
+  table.insert(graphics, {
+    Type     = "Label",
+    Text     = "Build Version: " .. PluginInfo.BuildVersion,
+    Size     = {80, 20},
+    Position = {0, 0},
+    FontSize = 8
+  })
 
 
 
