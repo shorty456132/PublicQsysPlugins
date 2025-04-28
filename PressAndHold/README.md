@@ -1,3 +1,12 @@
+# PressAndHold
+- used to replace the qsys press and hold component. 
+- this will take in a press pin if triggering from somewhere else in the design
+- Long Press will trigger after timer has expired, not when button is released
+- short press will trigger if button is released before time has expired
+
+
+
+
 # BasePlugin
 
 This is a template plugin that you can download with some pre-written Lua code to get you started.
