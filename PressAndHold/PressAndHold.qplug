@@ -1,0 +1,207 @@
+-- Basic Framework Plugin
+-- by QSC
+-- October 2020
+
+-- Information block for the plugin
+PluginInfo = {
+  Name = "Press & Hold",
+  Version = "1.0",
+  BuildVersion = "0.1.0.0",
+  Id = "pressandhold",
+  Author = "Andrew Laiacano",
+  Description = "Press and Hold that triggers an output when a timer elapses"  
+}
+
+-- Define the color of the plugin object in the design
+function GetColor(props)
+  return { 102, 102, 102 }
+end
+
+-- The name that will initially display when dragged into a design
+function GetPrettyName(props)
+  return "Press & Hold, version " .. PluginInfo.Version
+end
+
+-- Optional function used if plugin has multiple pages
+PageNames = { "Control"}  --List the pages within the plugin
+function GetPages(props)
+  local pages = {}
+  for ix,name in ipairs(PageNames) do
+    table.insert(pages, {name = PageNames[ix]})
+  end
+  return pages
+end
+
+-- Optional function to define model if plugin supports more than one model
+function GetModel(props)
+  local model = {}
+  if props.Model ~= nil and props.Model.Value ~= "" then
+    table.insert(model, { props.Model.Value } )
+  else
+    table.insert(model, { "Base Model" } )
+  end
+ return model
+end
+
+-- Define User configurable Properties of the plugin
+function GetProperties()
+  local props = {}
+  table.insert(props, {
+    Name = "Debug Print",
+    Type = "enum",
+    Choices = {"None", "Tx/Rx", "Tx", "Rx", "Function Calls", "All"},
+    Value = "None"
+  })
+  
+  table.insert(props, {
+  Name = "HoldTime",
+  Type = "integer",
+  Min = 0,
+  Max = 100,
+  Value = 3
+  })
+  return props
+end
+
+-- Optional function to define pins on the plugin that are not connected to a Control
+function GetPins(props)
+  local pins = {}
+  -- table.insert(pins,{
+  --   Name = "Audio Output",
+  --   Direction = "output",
+  -- })
+  return pins
+end
+
+-- Optional function to update available properties when properties are altered by the user
+function RectifyProperties(props)
+  if props.plugin_show_debug.Value == false then 
+    props["Debug Print"].IsHidden = true 
+  end
+  return props
+end
+
+-- Optional function to define components used within the plugin
+function GetComponents(props)
+  local components = {}
+  -- table.insert(components,{
+  --   Name = "main_mixer",
+  --   Type = "mixer",
+  --   Properties =   
+  --   {
+  --     ["n_inputs"] = 8,
+  --     ["n_outputs"] = 1,
+  --   }
+  -- })
+  return components
+end
+
+-- Optional function to define wiring of components used within the plugin
+function GetWiring(props)
+  local wiring = {}
+  -- table.insert( wiring, { "Audio Output", "main_mixer Output 1" } )
+  return wiring
+end
+
+-- Defines the Controls used within the plugin
+function GetControls(props)
+  local ctrls = {}
+  -- table.insert(ctrls, {
+  --   Name = "SendButton",
+  --   ControlType = "Button",
+  --   ButtonType = "Momentary",
+  --   Count = 1,
+  --   UserPin = true,
+  --   PinStyle = "Input",
+  --   Icon = "Power"
+  -- })
+  
+  table.insert(ctrls, {
+  Name = "Press",
+  Count = 1,
+  ControlType = "Button",
+  ButtonType = "Momentary",
+  UserPin = true,
+  PinStyle = "Input"
+  })
+  
+  table.insert(ctrls, {
+  Name = "LongPress",
+  Count = 1,
+  ControlType = "Button",
+  ButtonType = "Trigger",
+  UserPin = true,
+  PinStyle = "Output"
+  })
+  
+  table.insert(ctrls, {
+    Name = "ShortPress",
+    Count = 1,
+    ControlType = "Button",
+    ButtonType = "Trigger",
+    UserPin = true,
+    PinStyle = "Output"
+    })
+  return ctrls
+end
+
+--Layout of controls and graphics for the plugin UI to display
+function GetControlLayout(props)
+  local layout = {}
+  local graphics = {}
+  local CurrentPage = PageNames[props["page_index"].Value]
+  
+  layout["Press"] = {
+  PrettyName = "Press",
+  Style = "Button",
+  Position = {0,0},
+  Size = {50, 50}
+  }
+  
+  layout["LongPress"] = {
+  PrettyName = "LongPress",
+  Style = "None",
+  Position = {0,100},
+  Size = {10, 10}
+  }
+  
+  layout["ShortPress"] = {
+    PrettyName = "ShortPress",
+    Style = "None",
+    Position = {0,120},
+    Size = {10, 10}
+    }
+  return layout, graphics
+end
+
+--Start event based logic
+if Controls then
+  local holdTime = Properties["HoldTime"].Value
+  local Press = Controls.Press
+  
+  local HoldTimer = Timer.New()
+  local TimerFlag = false
+  
+  Press.EventHandler = function()
+    if Press.Boolean == true then
+      if TimerFlag == false then
+        TimerFlag = true
+        HoldTimer:Start(holdTime)
+      end
+    else -- release
+      if TimerFlag == true then
+        TimerFlag = false
+        HoldTimer:Stop()
+        Controls.ShortPress:Trigger()
+      end
+    end
+  end
+  
+  HoldTimer.EventHandler = function()
+    if Controls.Press.Boolean == true then
+      TimerFlag = false
+      HoldTimer:Stop()
+      Controls.LongPress:Trigger()
+    end
+  end
+end
